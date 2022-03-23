@@ -13,6 +13,7 @@ pub enum Event {
     UserInput(InputEvent),
     SetPrompt(String),
     SendMessage(String),
+    LineWrapping(bool),
     SetLineNumbers(LineNumbers),
     SetExitStrategy(ExitStrategy),
     SetInputClassifier(Box<dyn InputClassifier + Send + Sync + 'static>),
@@ -28,6 +29,7 @@ impl PartialEq for Event {
             | (Self::AppendData(d1), Self::AppendData(d2))
             | (Self::SetPrompt(d1), Self::SetPrompt(d2))
             | (Self::SendMessage(d1), Self::SendMessage(d2)) => d1 == d2,
+            (Self::LineWrapping(d1), Self::LineWrapping(d2)) => d1 == d2,
             (Self::SetLineNumbers(d1), Self::SetLineNumbers(d2)) => d1 == d2,
             (Self::SetExitStrategy(d1), Self::SetExitStrategy(d2)) => d1 == d2,
             #[cfg(feature = "static_output")]
@@ -47,6 +49,7 @@ impl Debug for Event {
             Self::SetPrompt(text) => write!(f, "SetPrompt({:?})", text),
             Self::SendMessage(text) => write!(f, "SendMessage({:?})", text),
             Self::SetLineNumbers(ln) => write!(f, "SetLineNumbers({:?})", ln),
+            Self::LineWrapping(lw) => write!(f, "LineWrapping({:?})", lw),
             Self::SetExitStrategy(es) => write!(f, "SetExitStrategy({:?})", es),
             Self::SetInputClassifier(_) => write!(f, "SetInputClassifier"),
             Self::AddExitCallback(_) => write!(f, "AddExitCallback"),

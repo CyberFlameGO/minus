@@ -116,6 +116,10 @@ pub fn handle_event(
             p.line_numbers = ln;
             p.format_lines();
         }
+        Event::LineWrapping(lw) => {
+            p.line_wrapping = lw;
+            p.format_lines();
+        }
         Event::SetExitStrategy(es) => p.exit_strategy = es,
         #[cfg(feature = "static_output")]
         Event::SetRunNoOverflow(val) => p.run_no_overflow = val,

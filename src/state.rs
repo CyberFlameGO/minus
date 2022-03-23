@@ -46,10 +46,16 @@ pub struct PagerState {
     /// the terminal.
     /// When `rows - 1` is added to the `upper_mark`, it gives the lower bound of scroll.
     ///
-    /// For example if there are 10 rows is a terminal and the data to display has 50 lines in it/
+    /// For example if there are 10 rows is a terminal and the data to display has 50 lines in it
     /// If the `upper_mark` is 15, then the first row of the terminal is the 16th line of the data
     /// and last row is the 24th line of the data.
     pub upper_mark: usize,
+    /// Whether to Line wrap lines
+    pub(crate) line_wrapping: bool,
+    /// The left mark of scrolling
+    ///
+    /// When this is `> 0`, this amount of text will be truncated from the left side
+    pub left_mark: usize,
     /// Do we want to page if there is no overflow
     #[cfg(feature = "static_output")]
     pub(crate) run_no_overflow: bool,
@@ -106,6 +112,8 @@ impl PagerState {
             upper_mark: 0,
             unterminated: 0,
             prompt: wrap_str("minus", cols),
+            line_wrapping: true,
+            left_mark: 0,
             exit_strategy: ExitStrategy::ProcessQuit,
             input_classifier: Box::new(input::DefaultInputClassifier {}),
             exit_callbacks: Vec::with_capacity(5),

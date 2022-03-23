@@ -90,7 +90,7 @@ impl Pager {
     /// use minus::{Pager, LineNumbers};
     ///
     /// let pager = Pager::new();
-    /// pager.set_line_numbers(LineNumbers::Enabled).expect("Failed to send data to the pager");
+    /// pager.set_line_numbers(LineNumbers::Enabled).expect("Failed to communicate with the pager");
     /// ```
     pub fn set_line_numbers(&self, l: LineNumbers) -> Result<(), MinusError> {
         Ok(self.tx.send(Event::SetLineNumbers(l))?)
@@ -157,7 +157,7 @@ impl Pager {
     /// use minus::{Pager, ExitStrategy};
     ///
     /// let pager = Pager::new();
-    /// pager.set_exit_strategy(ExitStrategy::ProcessQuit).expect("Failed to send data to the pager");
+    /// pager.set_exit_strategy(ExitStrategy::ProcessQuit).expect("Failed to communicate with the pager");
     /// ```
     pub fn set_exit_strategy(&self, es: ExitStrategy) -> Result<(), MinusError> {
         Ok(self.tx.send(Event::SetExitStrategy(es))?)
@@ -186,12 +186,30 @@ impl Pager {
     /// use minus::Pager;
     ///
     /// let pager = Pager::new();
-    /// pager.set_run_no_overflow(true).expect("Failed to send data to the pager");
+    /// pager.set_run_no_overflow(true).expect("Failed to communicate with the pager");
     /// ```
     #[cfg(feature = "static_output")]
     #[cfg_attr(docsrs, doc(cfg(feature = "static_output")))]
     pub fn set_run_no_overflow(&self, val: bool) -> Result<(), MinusError> {
         Ok(self.tx.send(Event::SetRunNoOverflow(val))?)
+    }
+
+    /// Control whether to wrap lines or not
+    ///
+    /// Setting this to `false` implicitly turns on horizontal scrolling. By default hhis is set to true.
+    ///
+    /// # Error
+    /// This function will return a [`Err(MinusError::Communication)`](MinusError::Communication) if the data
+    /// could not be sent to the receiver
+    ///
+    /// ```
+    /// use minus::Pager;
+    ///
+    /// let pager = Pager::new();
+    /// pager.set_line_wrapping(false).expect("Failed to communicate with the pager");
+    /// ```
+    pub fn set_line_wrapping(&self, value: bool) -> Result<(), MinusError> {
+        Ok(self.tx.send(Event::LineWrapping(value))?)
     }
 
     /// Set a custom input classifer function.
@@ -233,7 +251,7 @@ impl Pager {
     /// }
     ///
     /// let pager = Pager::new();
-    /// pager.add_exit_callback(Box::new(hello)).expect("Failed to send data to the pager");
+    /// pager.add_exit_callback(Box::new(hello)).expect("Failed to communicate with the pager");
     /// ```
     pub fn add_exit_callback(
         &self,
