@@ -33,6 +33,7 @@ pub fn handle_event(
             cleanup(&mut out, &p.exit_strategy, true)?;
         }
         Event::UserInput(InputEvent::UpdateUpperMark(um)) => p.upper_mark = um,
+        Event::UserInput(InputEvent::UpdateLeftMark(lm)) => p.left_mark = lm,
         Event::UserInput(InputEvent::RestorePrompt) => {
             // Set the message to None and new messages to false as all messages have been shown
             p.message = None;
