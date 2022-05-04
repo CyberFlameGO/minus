@@ -1,6 +1,9 @@
 //! Provides the [`InputClassifier`] trait, which can be used
 //! to customize the default keybindings of minus
 
+#[path = "input-parser/mod.rs"]
+mod input_parser;
+
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers, MouseEvent, MouseEventKind};
 
 #[cfg(feature = "search")]
