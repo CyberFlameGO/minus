@@ -2,7 +2,7 @@
 //! to customize the default keybindings of minus
 
 #[path = "input-parser/mod.rs"]
-mod input_parser;
+pub(crate) mod input_parser;
 
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers, MouseEvent, MouseEventKind};
 
