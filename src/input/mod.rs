@@ -1,14 +1,13 @@
 //! Provides the [`InputClassifier`] trait, which can be used
 //! to customize the default keybindings of minus
 
-#[path = "input-parser/mod.rs"]
-pub(crate) mod input_parser;
-
-use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers, MouseEvent, MouseEventKind};
+pub(crate) mod keyevent;
 
 #[cfg(feature = "search")]
 use crate::minus_core::search::SearchMode;
 use crate::{LineNumbers, PagerState};
+use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers, MouseEvent, MouseEventKind};
+use std::{collections::hash_map::RandomState, collections::HashMap, hash::BuildHasher, rc::Rc};
 
 /// Events handled by the `minus` pager.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -90,6 +89,97 @@ pub enum InputEvent {
 #[allow(clippy::module_name_repetitions)]
 pub trait InputClassifier {
     fn classify_input(&self, ev: Event, ps: &PagerState) -> Option<InputEvent>;
+}
+
+pub struct HashedEventRegister<S>(
+    HashMap<Event, Rc<dyn Fn(Event, &PagerState) -> InputEvent + Send + Sync>, S>,
+);
+
+impl<S> HashedEventRegister<S>
+where
+    S: BuildHasher,
+{
+    fn new(s: S) -> Self {
+        Self(HashMap::with_hasher(s))
+    }
+
+    fn insert(
+        &mut self,
+        btype: &BindType,
+        k: &str,
+        v: impl Fn(Event, &PagerState) -> InputEvent + Send + Sync + 'static,
+    ) {
+        let v = Rc::new(v);
+        self.insert_rc(btype, k, v);
+    }
+
+    fn insert_rc(
+        &mut self,
+        btype: &BindType,
+        k: &str,
+        v: Rc<impl Fn(Event, &PagerState) -> InputEvent + Send + Sync + 'static>,
+    ) {
+        match btype {
+            BindType::Key => {
+                self.0.insert(Event::Key(keyevent::parse_key_event(k)), v);
+            }
+            _ => {}
+        }
+    }
+
+    fn get(
+        &self,
+        k: &Event,
+    ) -> Option<&Rc<dyn Fn(Event, &PagerState) -> InputEvent + Send + Sync>> {
+        self.0.get(k)
+    }
+
+    fn insert_all(
+        &mut self,
+        btype: &BindType,
+        keys: &[&str],
+        v: impl Fn(Event, &PagerState) -> InputEvent + Send + Sync + 'static,
+    ) {
+        let v = Rc::new(v);
+        for k in keys {
+            self.insert_rc(btype, *k, v.clone());
+        }
+    }
+}
+
+impl<'a> Default for HashedEventRegister<RandomState> {
+    fn default() -> Self {
+        Self::new(RandomState::new())
+    }
+}
+
+impl<S> InputClassifier for HashedEventRegister<S>
+where
+    S: BuildHasher,
+{
+    fn classify_input(&self, ev: Event, ps: &crate::PagerState) -> Option<InputEvent> {
+        self.get(&ev).map(|c| c(ev, ps))
+    }
+}
+
+pub enum BindType {
+    Key,
+    Mouse,
+    Resize,
+}
+
+fn generate_default_bindings<'a>() -> HashedEventRegister<RandomState> {
+    let mut map = HashedEventRegister::default();
+    map.insert_all(
+        &BindType::Key,
+        &["up", "k"],
+        |_ev: Event, ps: &PagerState| {
+            let position = ps.prefix_num.parse::<usize>().unwrap_or(1);
+            InputEvent::UpdateUpperMark(ps.upper_mark.saturating_sub(position))
+        },
+    );
+
+    map
 }
 
 /// The default keybindings in `minus`. These can be overriden by
