@@ -168,20 +168,6 @@ pub enum BindType {
     Resize,
 }
 
-fn generate_default_bindings<'a>() -> HashedEventRegister<RandomState> {
-    let mut map = HashedEventRegister::default();
-    map.insert_all(
-        &BindType::Key,
-        &["up", "k"],
-        |_ev: Event, ps: &PagerState| {
-            let position = ps.prefix_num.parse::<usize>().unwrap_or(1);
-            InputEvent::UpdateUpperMark(ps.upper_mark.saturating_sub(position))
-        },
-    );
-
-    map
-}
-
 /// The default keybindings in `minus`. These can be overriden by
 /// making a custom input handler struct and implementing the [`InputClassifier`] trait
 pub struct DefaultInputClassifier;
