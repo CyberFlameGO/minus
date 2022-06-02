@@ -7,7 +7,7 @@ pub(crate) mod keyevent;
 use crate::minus_core::search::SearchMode;
 use crate::{LineNumbers, PagerState};
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers, MouseEvent, MouseEventKind};
-use std::{collections::hash_map::RandomState, collections::HashMap, hash::BuildHasher, rc::Rc};
+use std::{collections::hash_map::RandomState, collections::HashMap, hash::BuildHasher, sync::Arc};
 
 /// Events handled by the `minus` pager.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -91,8 +91,26 @@ pub trait InputClassifier {
     fn classify_input(&self, ev: Event, ps: &PagerState) -> Option<InputEvent>;
 }
 
+#[derive(Copy, Clone, PartialEq, Eq, Hash)]
+enum EventWrapper {
+    ExactMatchEvent(Event),
+    WildEvent,
+}
+
+impl From<Event> for EventWrapper {
+    fn from(e: Event) -> Self {
+        EventWrapper::ExactMatchEvent(e)
+    }
+}
+
+impl From<&Event> for EventWrapper {
+    fn from(e: &Event) -> Self {
+        EventWrapper::ExactMatchEvent(*e)
+    }
+}
+
 pub struct HashedEventRegister<S>(
-    HashMap<Event, Rc<dyn Fn(Event, &PagerState) -> InputEvent + Send + Sync>, S>,
+    HashMap<EventWrapper, Arc<dyn Fn(Event, &PagerState) -> InputEvent + Send + Sync>, S>,
 );
 
 impl<S> HashedEventRegister<S>
@@ -109,7 +127,7 @@ where
         k: &str,
         v: impl Fn(Event, &PagerState) -> InputEvent + Send + Sync + 'static,
     ) {
-        let v = Rc::new(v);
+        let v = Arc::new(v);
         self.insert_rc(btype, k, v);
     }
 
@@ -117,11 +135,12 @@ where
         &mut self,
         btype: &BindType,
         k: &str,
-        v: Rc<impl Fn(Event, &PagerState) -> InputEvent + Send + Sync + 'static>,
+        v: Arc<impl Fn(Event, &PagerState) -> InputEvent + Send + Sync + 'static>,
     ) {
         match btype {
             BindType::Key => {
-                self.0.insert(Event::Key(keyevent::parse_key_event(k)), v);
+                self.0
+                    .insert(Event::Key(keyevent::parse_key_event(k)).into(), v);
             }
             _ => {}
         }
@@ -130,8 +149,14 @@ where
     fn get(
         &self,
         k: &Event,
-    ) -> Option<&Rc<dyn Fn(Event, &PagerState) -> InputEvent + Send + Sync>> {
-        self.0.get(k)
+    ) -> Option<&Arc<dyn Fn(Event, &PagerState) -> InputEvent + Send + Sync>> {
+        if let Some(ev) = self.0.get(&k.into()) {
+            Some(ev)
+        } else if let Some(wild_event) = self.0.get(&EventWrapper::WildEvent) {
+            Some(wild_event)
+        } else {
+            None
+        }
     }
 
     fn insert_all(
@@ -140,7 +165,7 @@ where
         keys: &[&str],
         v: impl Fn(Event, &PagerState) -> InputEvent + Send + Sync + 'static,
     ) {
-        let v = Rc::new(v);
+        let v = Arc::new(v);
         for k in keys {
             self.insert_rc(btype, *k, v.clone());
         }
