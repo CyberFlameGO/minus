@@ -26,6 +26,7 @@ pub enum InputEvent {
     Number(char),
     /// Restore the original prompt
     RestorePrompt,
+    Ignore,
     /// `/`, Searching for certain pattern of text
     #[cfg(feature = "search")]
     Search(SearchMode),
@@ -129,6 +130,13 @@ where
     ) {
         let v = Arc::new(v);
         self.insert_rc(btype, k, v);
+    }
+
+    fn insert_wild_event_matcher(
+        &mut self,
+        v: impl Fn(Event, &PagerState) -> InputEvent + Send + Sync + 'static,
+    ) {
+        self.0.insert(EventWrapper::WildEvent, Arc::new(v));
     }
 
     fn insert_rc(
