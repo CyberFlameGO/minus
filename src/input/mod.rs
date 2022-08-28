@@ -1,7 +1,7 @@
 //! Provides the [`InputClassifier`] trait, which can be used
 //! to customize the default keybindings of minus
 
-pub(crate) mod keyevent;
+pub(crate) mod definitions;
 
 #[cfg(feature = "search")]
 use crate::minus_core::search::SearchMode;
@@ -169,8 +169,10 @@ where
     ) {
         match btype {
             BindType::Key => {
-                self.0
-                    .insert(Event::Key(keyevent::parse_key_event(k)).into(), v);
+                self.0.insert(
+                    Event::Key(definitions::keydefs::parse_key_event(k)).into(),
+                    v,
+                );
             }
             _ => {}
         }

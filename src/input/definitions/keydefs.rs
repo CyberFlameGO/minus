@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+use super::MODIFIERS;
 use std::collections::HashMap;
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
@@ -37,15 +38,6 @@ static SPECIAL_KEYS: Lazy<HashMap<&str, KeyCode>> = Lazy::new(|| {
     map.insert("f12", KeyCode::F(12));
     map.insert("dash", KeyCode::Char('-'));
     map.insert("space", KeyCode::Char(' '));
-
-    map
-});
-
-static MODIFIERS: Lazy<HashMap<char, KeyModifiers>> = Lazy::new(|| {
-    let mut map = HashMap::new();
-    map.insert('m', KeyModifiers::ALT);
-    map.insert('c', KeyModifiers::CONTROL);
-    map.insert('s', KeyModifiers::SHIFT);
 
     map
 });
