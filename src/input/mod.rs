@@ -7,7 +7,10 @@ pub(crate) mod keyevent;
 use crate::minus_core::search::SearchMode;
 use crate::{LineNumbers, PagerState};
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers, MouseEvent, MouseEventKind};
-use std::{collections::hash_map::RandomState, collections::HashMap, hash::BuildHasher, sync::Arc};
+use std::{
+    collections::hash_map::RandomState, collections::HashMap, hash::BuildHasher, hash::Hash,
+    sync::Arc,
+};
 
 /// Events handled by the `minus` pager.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -92,7 +95,7 @@ pub trait InputClassifier {
     fn classify_input(&self, ev: Event, ps: &PagerState) -> Option<InputEvent>;
 }
 
-#[derive(Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Copy, Clone, PartialEq, Eq)]
 enum EventWrapper {
     ExactMatchEvent(Event),
     WildEvent,
@@ -107,6 +110,25 @@ impl From<Event> for EventWrapper {
 impl From<&Event> for EventWrapper {
     fn from(e: &Event) -> Self {
         EventWrapper::ExactMatchEvent(*e)
+    }
+}
+
+impl Hash for EventWrapper {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        let tag = std::mem::discriminant(self);
+        tag.hash(state);
+        match self {
+            Self::ExactMatchEvent(Event::Mouse(MouseEvent {
+                kind, modifiers, ..
+            })) => {
+                kind.hash(state);
+                modifiers.hash(state);
+            }
+            Self::ExactMatchEvent(v) => {
+                v.hash(state);
+            }
+            _ => {}
+        }
     }
 }
 
