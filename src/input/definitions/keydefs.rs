@@ -56,7 +56,7 @@ impl Default for KeySeq {
     }
 }
 
-pub fn parse_key_event(mut text: &str) -> KeyEvent {
+pub fn parse_key_event(text: &str) -> KeyEvent {
     let token_list = super::parse_tokens(text);
 
     KeySeq::gen_keyevent_from_tokenlist(&token_list, text)
