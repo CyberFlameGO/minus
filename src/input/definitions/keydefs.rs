@@ -118,9 +118,11 @@ impl KeySeq {
             match token {
                 Token::Separator => {
                     token_iter.next();
-                    if token_iter.peek() == Some(&&Token::Separator) {
-                        panic!("'{}': Multiple - separators found consecutively", text);
-                    }
+                    assert!(
+                        !(token_iter.peek() == Some(&&Token::Separator)),
+                        "'{}': Multiple separators found consecutively",
+                        text
+                    );
                 }
                 Token::SingleChar(c) => {
                     token_iter.next();

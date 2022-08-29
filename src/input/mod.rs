@@ -95,7 +95,7 @@ pub trait InputClassifier {
     fn classify_input(&self, ev: Event, ps: &PagerState) -> Option<InputEvent>;
 }
 
-#[derive(Copy, Clone, PartialEq, Eq)]
+#[derive(Copy, Clone, Eq)]
 enum EventWrapper {
     ExactMatchEvent(Event),
     WildEvent,
@@ -103,13 +103,36 @@ enum EventWrapper {
 
 impl From<Event> for EventWrapper {
     fn from(e: Event) -> Self {
-        EventWrapper::ExactMatchEvent(e)
+        Self::ExactMatchEvent(e)
     }
 }
 
 impl From<&Event> for EventWrapper {
     fn from(e: &Event) -> Self {
-        EventWrapper::ExactMatchEvent(*e)
+        Self::ExactMatchEvent(*e)
+    }
+}
+
+impl PartialEq for EventWrapper {
+    fn eq(&self, other: &Self) -> bool {
+        if let Self::ExactMatchEvent(Event::Mouse(MouseEvent {
+            kind, modifiers, ..
+        })) = self
+        {
+            let (o_kind, o_modifiers) = if let Self::ExactMatchEvent(Event::Mouse(MouseEvent {
+                kind: o_kind,
+                modifiers: o_modifiers,
+                ..
+            })) = other
+            {
+                (o_kind, o_modifiers)
+            } else {
+                unreachable!()
+            };
+            kind == o_kind && modifiers == o_modifiers
+        } else {
+            self == other
+        }
     }
 }
 
@@ -127,7 +150,7 @@ impl Hash for EventWrapper {
             Self::ExactMatchEvent(v) => {
                 v.hash(state);
             }
-            _ => {}
+            Self::WildEvent => {}
         }
     }
 }
@@ -144,7 +167,7 @@ where
         Self(HashMap::with_hasher(s))
     }
 
-    fn insert(
+    pub fn insert(
         &mut self,
         btype: &BindType,
         k: &str,
@@ -154,7 +177,7 @@ where
         self.insert_rc(btype, k, v);
     }
 
-    fn insert_wild_event_matcher(
+    pub fn insert_wild_event_matcher(
         &mut self,
         v: impl Fn(Event, &PagerState) -> InputEvent + Send + Sync + 'static,
     ) {
@@ -178,20 +201,16 @@ where
         }
     }
 
-    fn get(
+    pub fn get(
         &self,
         k: &Event,
     ) -> Option<&Arc<dyn Fn(Event, &PagerState) -> InputEvent + Send + Sync>> {
-        if let Some(ev) = self.0.get(&k.into()) {
-            Some(ev)
-        } else if let Some(wild_event) = self.0.get(&EventWrapper::WildEvent) {
-            Some(wild_event)
-        } else {
-            None
-        }
+        self.0
+            .get(&k.into())
+            .map_or_else(|| self.0.get(&EventWrapper::WildEvent), |ev| Some(ev))
     }
 
-    fn insert_all(
+    pub fn insert_all(
         &mut self,
         btype: &BindType,
         keys: &[&str],
@@ -199,12 +218,12 @@ where
     ) {
         let v = Arc::new(v);
         for k in keys {
-            self.insert_rc(btype, *k, v.clone());
+            self.insert_rc(btype, k, v.clone());
         }
     }
 }
 
-impl<'a> Default for HashedEventRegister<RandomState> {
+impl Default for HashedEventRegister<RandomState> {
     fn default() -> Self {
         Self::new(RandomState::new())
     }

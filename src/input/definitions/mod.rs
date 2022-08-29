@@ -1,4 +1,5 @@
 pub mod keydefs;
+pub mod mousedefs;
 
 use crossterm::event::KeyModifiers;
 use once_cell::sync::Lazy;
