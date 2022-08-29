@@ -8,6 +8,8 @@ use std::{
 
 type EventReturnType = Arc<dyn Fn(Event, &PagerState) -> InputEvent + Send + Sync>;
 
+pub struct HashedEventRegister<S>(HashMap<EventWrapper, EventReturnType, S>);
+
 #[derive(Copy, Clone, Eq)]
 enum EventWrapper {
     ExactMatchEvent(Event),
@@ -60,15 +62,13 @@ impl Hash for EventWrapper {
                 kind.hash(state);
                 modifiers.hash(state);
             }
+            Self::WildEvent | Self::ExactMatchEvent(Event::Resize(..)) => {}
             Self::ExactMatchEvent(v) => {
                 v.hash(state);
             }
-            Self::WildEvent => {}
         }
     }
 }
-
-pub struct HashedEventRegister<S>(HashMap<EventWrapper, EventReturnType, S>);
 
 impl<S> HashedEventRegister<S>
 where
