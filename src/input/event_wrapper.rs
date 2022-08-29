@@ -78,44 +78,11 @@ where
         Self(HashMap::with_hasher(s))
     }
 
-    pub fn insert(
-        &mut self,
-        btype: &BindType,
-        k: &str,
-        v: impl Fn(Event, &PagerState) -> InputEvent + Send + Sync + 'static,
-    ) {
-        let v = Arc::new(v);
-        self.insert_rc(btype, k, v);
-    }
-
     pub fn insert_wild_event_matcher(
         &mut self,
         v: impl Fn(Event, &PagerState) -> InputEvent + Send + Sync + 'static,
     ) {
         self.0.insert(EventWrapper::WildEvent, Arc::new(v));
-    }
-
-    fn insert_rc(
-        &mut self,
-        btype: &BindType,
-        k: &str,
-        v: Arc<impl Fn(Event, &PagerState) -> InputEvent + Send + Sync + 'static>,
-    ) {
-        match btype {
-            BindType::Key => {
-                self.0.insert(
-                    Event::Key(super::definitions::keydefs::parse_key_event(k)).into(),
-                    v,
-                );
-            }
-            BindType::Mouse => {
-                self.0.insert(
-                    Event::Mouse(super::definitions::mousedefs::parse_mouse_event(k)).into(),
-                    v,
-                );
-            }
-            BindType::Resize => todo!(),
-        }
     }
 
     pub fn get(&self, k: &Event) -> Option<&EventReturnType> {
@@ -124,15 +91,76 @@ where
             .map_or_else(|| self.0.get(&EventWrapper::WildEvent), |k| Some(k))
     }
 
-    pub fn insert_all(
+    pub fn add_resize_event(
         &mut self,
-        btype: &BindType,
+        v: impl Fn(Event, &PagerState) -> InputEvent + Send + Sync + 'static,
+    ) {
+        let v = Arc::new(v);
+        self.0
+            .insert(EventWrapper::ExactMatchEvent(Event::Resize(0, 0)), v);
+    }
+}
+
+// Key event Insertions functions
+impl<S> HashedEventRegister<S>
+where
+    S: BuildHasher,
+{
+    pub fn add_key_event(
+        &mut self,
+        k: &str,
+        v: impl Fn(Event, &PagerState) -> InputEvent + Send + Sync + 'static,
+    ) {
+        let v = Arc::new(v);
+        self.0.insert(
+            Event::Key(super::definitions::keydefs::parse_key_event(k)).into(),
+            v,
+        );
+    }
+
+    pub fn add_key_events(
+        &mut self,
         keys: &[&str],
         v: impl Fn(Event, &PagerState) -> InputEvent + Send + Sync + 'static,
     ) {
         let v = Arc::new(v);
         for k in keys {
-            self.insert_rc(btype, k, v.clone());
+            self.0.insert(
+                Event::Key(super::definitions::keydefs::parse_key_event(k)).into(),
+                v.clone(),
+            );
+        }
+    }
+}
+
+// Mouse event insertions functions
+impl<S> HashedEventRegister<S>
+where
+    S: BuildHasher,
+{
+    pub fn add_mouse_event(
+        &mut self,
+        k: &str,
+        v: impl Fn(Event, &PagerState) -> InputEvent + Send + Sync + 'static,
+    ) {
+        let v = Arc::new(v);
+        self.0.insert(
+            Event::Mouse(super::definitions::mousedefs::parse_mouse_event(k)).into(),
+            v,
+        );
+    }
+
+    pub fn add_mouse_events(
+        &mut self,
+        keys: &[&str],
+        v: impl Fn(Event, &PagerState) -> InputEvent + Send + Sync + 'static,
+    ) {
+        let v = Arc::new(v);
+        for k in keys {
+            self.0.insert(
+                Event::Mouse(super::definitions::mousedefs::parse_mouse_event(k)).into(),
+                v.clone(),
+            );
         }
     }
 }
@@ -150,10 +178,4 @@ where
     fn classify_input(&self, ev: Event, ps: &crate::PagerState) -> Option<InputEvent> {
         self.get(&ev).map(|c| c(ev, ps))
     }
-}
-
-pub enum BindType {
-    Key,
-    Mouse,
-    Resize,
 }
