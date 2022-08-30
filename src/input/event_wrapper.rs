@@ -30,23 +30,24 @@ impl From<&Event> for EventWrapper {
 
 impl PartialEq for EventWrapper {
     fn eq(&self, other: &Self) -> bool {
-        if let Self::ExactMatchEvent(Event::Mouse(MouseEvent {
-            kind, modifiers, ..
-        })) = self
-        {
-            let (o_kind, o_modifiers) = if let Self::ExactMatchEvent(Event::Mouse(MouseEvent {
-                kind: o_kind,
-                modifiers: o_modifiers,
-                ..
-            })) = other
-            {
-                (o_kind, o_modifiers)
-            } else {
-                unreachable!()
-            };
-            kind == o_kind && modifiers == o_modifiers
-        } else {
-            self == other
+        match (self, other) {
+            (
+                Self::ExactMatchEvent(Event::Mouse(MouseEvent {
+                    kind, modifiers, ..
+                })),
+                Self::ExactMatchEvent(Event::Mouse(MouseEvent {
+                    kind: o_kind,
+                    modifiers: o_modifiers,
+                    ..
+                })),
+            ) => kind == o_kind && modifiers == o_modifiers,
+            (
+                Self::ExactMatchEvent(Event::Resize(..)),
+                Self::ExactMatchEvent(Event::Resize(..)),
+            )
+            | (Self::WildEvent, Self::WildEvent) => true,
+            (Self::ExactMatchEvent(ev), Self::ExactMatchEvent(o_ev)) => ev == o_ev,
+            _ => false,
         }
     }
 }
