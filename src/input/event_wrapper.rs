@@ -100,6 +100,11 @@ where
         self.0
             .insert(EventWrapper::ExactMatchEvent(Event::Resize(0, 0)), v);
     }
+
+    pub fn remove_resize_event(&mut self) {
+        self.0.remove(&EventWrapper::ExactMatchEvent(Event::Resize(0, 0)));
+    }
+
 }
 
 // Key event Insertions functions
@@ -132,6 +137,11 @@ where
             );
         }
     }
+
+    pub fn remove_key_event(&mut self, k: &str) {
+        self.0.remove(&Event::Key(super::definitions::keydefs::parse_key_event(k)).into());
+    }
+
 }
 
 // Mouse event insertions functions
@@ -163,6 +173,10 @@ where
                 v.clone(),
             );
         }
+    }
+
+    pub fn remove_mouse_event(&mut self, k: &str) {
+        self.0.remove(&Event::Key(super::definitions::keydefs::parse_key_event(k)).into());
     }
 }
 
